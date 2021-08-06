@@ -14,7 +14,7 @@ function NewComment(props) {
     const enteredEmail = emailInputRef.current.value;
     const enteredName = nameInputRef.current.value;
     const enteredComment = commentInputRef.current.value;
-
+    //client Side validation show in Rigestrion from buttum
     if (
       !enteredEmail ||
       enteredEmail.trim() === '' ||

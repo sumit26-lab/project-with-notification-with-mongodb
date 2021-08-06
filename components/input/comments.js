@@ -1,13 +1,28 @@
-import { useState } from 'react';
+import { useState,useEffect,useContext } from "react";
 
-import CommentList from './comment-list';
-import NewComment from './new-comment';
-import classes from './comments.module.css';
+import CommentList from "./comment-list";
+import NewComment from "./new-comment";
+import classes from "./comments.module.css";
+import NotificationContext from "../../store/notification-context";
 
 function Comments(props) {
   const { eventId } = props;
+  const notificationCtx = useContext(NotificationContext)
 
   const [showComments, setShowComments] = useState(false);
+  const[isFetchingComments,SetFetchingComments]=useState(false);
+  const[comments,setcoments]=useState([]);
+ useEffect(()=>{
+   if(showComments){
+     SetFetchingComments(true)
+     fetch('/api/comments/' +eventId)
+     .then((response)=>response.json())
+     .then((data)=>{
+       setcoments(data.comments)
+       SetFetchingComments(false)
+     })
+   }
+ },[showComments])
 
   function toggleCommentsHandler() {
     setShowComments((prevStatus) => !prevStatus);
@@ -15,23 +30,52 @@ function Comments(props) {
 
   function addCommentHandler(commentData) {
     // send data to API
-    fetch('/api/comments/'+eventId,{
-      method:'POST',
-      body:JSON.stringify(commentData),
-      headers:{
-        'Content-Type':'application/json'
-      } 
-    }).then((response)=>response.json())
-    .then((data) =>console.log(data))
+    notificationCtx.showNotification({
+      title:'Sending-Comments--',
+      message:'Your comments curentliy being Store waill wating Into-DataBase ',
+      status:'pending'
+    })
+
+    fetch("/api/comments/"+ eventId, {
+      method: "POST",
+      body: JSON.stringify(commentData),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    })
+      .then((response) => {
+        if(response.ok){
+        return response.json();
+      }
+      return response.json().then((data)=>{
+        throw new Error(data.message ||'SomeThing Went wrong'); 
+      });
+    })
+      .then((data) =>{
+        notificationCtx.showNotification({
+        title:'Success',
+        message:'You Comment will be Add SuccessFuily',
+        status:'success',
+        })
+      })
+      .catch((error)=>{
+        notificationCtx.showNotification({
+          title:'Error',
+          message:error.message||'Ops Somthing went Wong',
+          status:'error'
+        })
+        
+      })
   }
 
   return (
     <section className={classes.comments}>
       <button onClick={toggleCommentsHandler}>
-        {showComments ? 'Hide' : 'Show'} Comments
+        {showComments ? "Hide" : "Show"} Comments
       </button>
       {showComments && <NewComment onAddComment={addCommentHandler} />}
-      {showComments && <CommentList />}
+      {showComments && !isFetchingComments && <CommentList items={comments} />}
+      {showComments && isFetchingComments&& <p>Loding...</p>}
     </section>
   );
 }
